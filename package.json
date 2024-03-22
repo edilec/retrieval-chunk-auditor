@@ -1,17 +1,25 @@
 {
   "name": "retrieval-chunk-auditor",
-  "version": "0.0.0",
-  "description": "Find chunks that are too large, duplicated, stale or missing provenance.",
+  "version": "0.1.0",
+  "description": "Audit a local retrieval chunk export for provenance, duplication, size, overlap and heading boundaries.",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test"
+    "lint": "node --check src/index.mjs && node --check bin/retrieval-chunk-auditor.mjs && node --check test/audit.test.mjs && node --check test/cli.test.mjs",
+    "test": "node --test",
+    "example": "node bin/retrieval-chunk-auditor.mjs --input examples/clean.json --json",
+    "example:failing": "node bin/retrieval-chunk-auditor.mjs --input examples/duplicate.json --json > /dev/null; test $? -eq 1",
+    "example:incomplete": "node bin/retrieval-chunk-auditor.mjs --input examples/stale.json --json > /dev/null; test $? -eq 2",
+    "check": "npm run lint && npm test && npm run example && npm run example:failing && npm run example:incomplete && npm pack --dry-run"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/edilec/retrieval-chunk-auditor"
-  }
+  },
+  "bin": { "retrieval-chunk-auditor": "./bin/retrieval-chunk-auditor.mjs" },
+  "exports": { ".": "./src/index.mjs" },
+  "files": ["bin", "src", "examples", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
 }

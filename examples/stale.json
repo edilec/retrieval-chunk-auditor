@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "1",
+  "sources": [{ "id": "one", "text": "Hello.\n" }],
+  "chunks": [{ "id": "one-1", "sourceId": "one", "sourceHash": "0000000000000000000000000000000000000000000000000000000000000000", "startChar": 0, "endChar": 7, "startToken": 0, "endToken": 2, "tokenCount": 2, "text": "Hello.\n" }]
+}
