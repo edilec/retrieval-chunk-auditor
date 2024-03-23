@@ -38,6 +38,7 @@ export const RULES = Object.freeze({
   'excessive-overlap': { severity: 'error', incomplete: false },
   'boundary-splits-heading': { severity: 'error', incomplete: false },
 })
+for (const rule of Object.values(RULES)) Object.freeze(rule)
 
 export class ConfigError extends Error {
   constructor(message) { super(message); this.name = 'ConfigError' }
@@ -68,7 +69,7 @@ export function validateLimits(overrides = {}) {
   return Object.freeze(limits)
 }
 
-export function makeReport(findings, checked, file = 'input.json') {
+function makeReport(findings, checked, file = 'input.json') {
   const sorted = [...findings].sort((a, b) => byCodeUnit(a.subject ?? '', b.subject ?? '')
     || byCodeUnit(a.location.pointer ?? '', b.location.pointer ?? '') || byCodeUnit(a.ruleId, b.ruleId))
   const errors = sorted.filter((finding) => finding.severity === 'error').length

@@ -72,8 +72,30 @@ test('maxOverlapTokens is silent at N and reports N+1', () => {
   const input = document()
   input.chunks[1].startToken = 2
   input.chunks[1].endToken = 6
-  assert.ok(!ids(tool.auditChunks(input, { limits: { maxOverlapTokens: 2 } })).includes('excessive-overlap'))
-  assert.ok(ids(tool.auditChunks(input, { limits: { maxOverlapTokens: 1 } })).includes('excessive-overlap'))
+  const at = tool.auditChunks(input, { limits: { maxOverlapTokens: 2 } })
+  assert.equal(at.status, 'pass')
+  assert.ok(!ids(at).includes('excessive-overlap'))
+  const over = tool.auditChunks(input, { limits: { maxOverlapTokens: 1 } })
+  assert.equal(over.status, 'fail')
+  assert.ok(ids(over).includes('excessive-overlap'))
+})
+
+test('one absent token count alone is incomplete, not a zero-token pass', () => {
+  const input = document()
+  delete input.chunks[0].tokenCount
+  const report = tool.auditChunks(input)
+  assert.equal(report.status, 'incomplete')
+  assert.deepEqual(ids(report), ['token-count-missing'])
+  assert.equal(report.findings[0].severity, 'error')
+})
+
+test('an orphan alone is incomplete and located by chunk id', () => {
+  const input = document()
+  input.chunks[0].sourceId = 'absent'
+  const report = tool.auditChunks(input)
+  assert.equal(report.status, 'incomplete')
+  assert.deepEqual(ids(report), ['orphan-chunk'])
+  assert.equal(report.findings[0].subject, 'a')
 })
 
 test('a stale source hash and an unknowable count make the run incomplete, not a zero-sized pass', () => {
@@ -204,4 +226,14 @@ test('the injected clock accepts exactly N and reports a deadline at N+1', () =>
   assert.equal(over.status, 'incomplete')
   assert.deepEqual(ids(over), ['analysis-timeout'])
   assert.equal(over.summary.checked, 0)
+})
+
+test('rule severity cannot be changed at runtime to turn a known failure into a pass', () => {
+  assert.throws(() => { tool.RULES['chunk-too-large'].severity = 'info' }, TypeError)
+  const input = document()
+  input.chunks[0].tokenCount = 5
+  input.chunks[0].endToken = 5
+  input.chunks[1].startToken = 5
+  input.chunks[1].endToken = 9
+  assert.equal(tool.auditChunks(input, { limits: { maxTokens: 4 } }).status, 'fail')
 })
