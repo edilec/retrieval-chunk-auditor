@@ -56,6 +56,35 @@ test('a chunk boundary inside a heading is reported but a boundary before it is 
   assert.equal(bad.status, 'fail')
 })
 
+test('a hash line inside a fenced code block is not a heading', () => {
+  for (const fence of ['```js\n# not a heading\n```\n', '~~~js\n# not a heading\n~~~\n']) {
+    const hash = createHash('sha256').update(fence).digest('hex')
+    const split = fence.indexOf('heading') + 3
+    const input = { schemaVersion: '1', sources: [{ id: 'code', text: fence }], chunks: [
+      { id: 'code-1', sourceId: 'code', sourceHash: hash, startChar: 0, endChar: split,
+        startToken: 0, endToken: 1, tokenCount: 1, text: fence.slice(0, split) },
+    ] }
+    const report = tool.auditChunks(input)
+    assert.equal(report.status, 'pass')
+    assert.deepEqual(ids(report), [])
+  }
+})
+
+test('up to three leading spaces still form an ATX heading; four spaces do not', () => {
+  for (const spaces of [1, 2, 3, 4]) {
+    const source = `${' '.repeat(spaces)}# Real heading\n`
+    const hash = createHash('sha256').update(source).digest('hex')
+    const split = source.indexOf('heading') + 3
+    const input = { schemaVersion: '1', sources: [{ id: 'guide', text: source }], chunks: [
+      { id: 'guide-1', sourceId: 'guide', sourceHash: hash, startChar: 0, endChar: split,
+        startToken: 0, endToken: 1, tokenCount: 1, text: source.slice(0, split) },
+    ] }
+    const report = tool.auditChunks(input)
+    assert.equal(report.status, spaces === 4 ? 'pass' : 'fail')
+    assert.deepEqual(ids(report), spaces === 4 ? [] : ['boundary-splits-heading'])
+  }
+})
+
 test('maxTokens is silent at N and reports N+1', () => {
   const input = document()
   assert.equal(tool.auditChunks(input, { limits: { maxTokens: 4 } }).status, 'pass')

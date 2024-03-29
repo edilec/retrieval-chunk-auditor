@@ -120,10 +120,23 @@ function depthProblem(value, maxDepth, checkpoint) {
 function headingRanges(text) {
   const ranges = []
   let start = 0
+  let fence = null
   while (start < text.length) {
     const newline = text.indexOf('\n', start)
     const end = newline === -1 ? text.length : newline
-    if (/^#{1,6}[ \t]+/.test(text.slice(start, end))) ranges.push({ start, end })
+    const lineEnd = end > start && text[end - 1] === '\r' ? end - 1 : end
+    const line = text.slice(start, lineEnd)
+    if (fence !== null) {
+      const closer = /^ {0,3}(`+|~+)[ \t]*$/.exec(line)
+      if (closer && closer[1][0] === fence.marker && closer[1].length >= fence.length) fence = null
+    } else {
+      const opener = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line)
+      if (opener && (opener[1][0] !== '`' || !opener[2].includes('`'))) {
+        fence = { marker: opener[1][0], length: opener[1].length }
+      } else if (/^ {0,3}#{1,6}(?:[ \t]|$)/.test(line)) {
+        ranges.push({ start, end: lineEnd })
+      }
+    }
     if (newline === -1) break
     start = newline + 1
   }
