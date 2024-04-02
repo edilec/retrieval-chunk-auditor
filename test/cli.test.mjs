@@ -79,3 +79,48 @@ test('the reported file is a basename even when the input path is absolute', asy
   assert.equal(result.code, 2)
   assert.equal(JSON.parse(result.stdout).findings[0].location.file, basename(file))
 })
+
+test('duplicate JSON keys cannot erase earlier provenance evidence', async (t) => {
+  const ordinary = JSON.stringify(INPUT)
+  const duplicate = ordinary.replace('"sourceHash":"', '"sourceHash":null,"sourceHash":"')
+  assert.notEqual(duplicate, ordinary)
+  const { file } = await fixture(t, duplicate)
+  const result = await run(['--input', file, '--json'])
+  assert.equal(result.code, 2)
+  const report = JSON.parse(result.stdout)
+  assert.equal(report.status, 'incomplete')
+  assert.deepEqual(report.findings.map((finding) => finding.ruleId), ['input-invalid'])
+})
+
+test('escaped JSON key spellings are compared after decoding', async (t) => {
+  const ordinary = JSON.stringify(INPUT)
+  const duplicate = ordinary.replace('"sourceHash":"', '"source\\u0048ash":null,"sourceHash":"')
+  assert.notEqual(duplicate, ordinary)
+  const { file } = await fixture(t, duplicate)
+  const result = await run(['--input', file, '--json'])
+  assert.equal(result.code, 2)
+  assert.deepEqual(JSON.parse(result.stdout).findings.map((finding) => finding.ruleId), ['input-invalid'])
+})
+
+test('duplicate root keys are refused even when the final schema version is valid', async (t) => {
+  const ordinary = JSON.stringify(INPUT)
+  const duplicate = ordinary.replace('"schemaVersion":"1"', '"schemaVersion":"0","schemaVersion":"1"')
+  assert.notEqual(duplicate, ordinary)
+  const { file } = await fixture(t, duplicate)
+  const result = await run(['--input', file, '--json'])
+  assert.equal(result.code, 2)
+  assert.deepEqual(JSON.parse(result.stdout).findings.map((finding) => finding.ruleId), ['input-invalid'])
+})
+
+test('the same key in separate objects and key-like text inside a string stay valid', async (t) => {
+  const text = '{"sourceHash":null,"sourceHash":"x"}\n'
+  const hash = createHash('sha256').update(text).digest('hex')
+  const input = { schemaVersion: '1', sources: [{ id: 'one', text }], chunks: [
+    { id: 'one-1', sourceId: 'one', sourceHash: hash, startChar: 0, endChar: text.length,
+      startToken: 0, endToken: 3, tokenCount: 3, text },
+  ] }
+  const { file } = await fixture(t, input)
+  const result = await run(['--input', file, '--json'])
+  assert.equal(result.code, 0)
+  assert.equal(JSON.parse(result.stdout).status, 'pass')
+})

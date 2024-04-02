@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "lint": "node --check src/index.mjs && node --check bin/retrieval-chunk-auditor.mjs && node --check test/audit.test.mjs && node --check test/cli.test.mjs",
+    "lint": "node --check src/index.mjs && node --check src/json-keys.mjs && node --check bin/retrieval-chunk-auditor.mjs && node --check test/audit.test.mjs && node --check test/cli.test.mjs",
     "test": "node --test",
     "example": "node bin/retrieval-chunk-auditor.mjs --input examples/clean.json --json",
     "example:failing": "node bin/retrieval-chunk-auditor.mjs --input examples/duplicate.json --json > /dev/null; test $? -eq 1",

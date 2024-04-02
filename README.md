@@ -26,7 +26,9 @@ It never writes or modifies an input or index.
 The input is one UTF-8 JSON document. Its `sources` array holds the source text
 **as exported**, not a path or URL to fetch. The tool computes SHA-256 over its
 UTF-8 bytes. Each chunk names that source and carries the hash recorded when
-it was cut. Thus a different source text is observable as a stale hash.
+it was cut. Thus a different source text is observable as a stale hash. JSON
+objects with duplicate decoded key names are refused as incomplete: accepting
+the last value would erase evidence from the export.
 
 ```json
 {

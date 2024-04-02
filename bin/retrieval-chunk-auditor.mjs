@@ -2,6 +2,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { basename } from 'node:path'
 import { auditChunks, exitCodeFor, oneFinding, renderReport, validateLimits } from '../src/index.mjs'
+import { hasDuplicateJsonKey } from '../src/json-keys.mjs'
 
 const HELP = `retrieval-chunk-auditor
 Audit one local JSON export of sources and retrieval chunks. No embeddings, models,
@@ -68,7 +69,13 @@ async function main(argv) {
       if (bytes.length > limits.maxBytes) report = oneFinding('input-too-large', `Input exceeds the limit of ${limits.maxBytes} bytes.`, file)
       else {
         let document
-        try { document = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) }
+        try {
+          const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+          document = JSON.parse(text)
+          if (hasDuplicateJsonKey(text)) {
+            report = oneFinding('input-invalid', 'JSON object has a duplicate key; earlier evidence was overwritten.', file)
+          }
+        }
         catch { report = oneFinding('input-invalid', 'Input could not be decoded as UTF-8 JSON.', file) }
         if (report === undefined) report = auditChunks(document, { limits: options.limits, file })
       }
